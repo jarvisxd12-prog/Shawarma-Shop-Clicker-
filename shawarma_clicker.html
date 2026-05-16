@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shawarma Clicker</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#000;display:flex;flex-direction:column;align-items:center;font-family:monospace;min-height:100vh;padding:10px 0;}
+h1{color:#ffcc44;font-size:16px;margin-bottom:6px;text-shadow:0 0 10px #ff6600;letter-spacing:3px;}
+#app{display:flex;gap:0;width:900px;max-width:100%;min-height:640px;border-radius:14px;overflow:hidden;color:#fff;position:relative;border:1px solid #3a1500;}
+#left{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:18px;position:relative;overflow:hidden;}
+#bgsvg{position:absolute;inset:0;width:100%;height:100%;z-index:0;}
+#left-content{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;}
+#middle{width:250px;background:#0e0300;padding:14px;overflow-y:auto;display:flex;flex-direction:column;gap:7px;border-left:2px solid #3a1500;border-right:2px solid #3a1500;z-index:2;}
+#right{width:210px;background:#080200;padding:14px;overflow-y:auto;display:flex;flex-direction:column;gap:7px;z-index:2;}
+#top-bar{text-align:center;margin-bottom:5px;}
+#owner-name-disp{font-size:16px;font-weight:bold;color:#ffdd88;text-shadow:1px 1px 0 #000,0 0 8px #ff6600;}
+#shop-name-disp{font-size:11px;color:#ffbb44;text-shadow:1px 1px 0 #000;}
+#kebab-count{font-size:18px;font-weight:bold;color:#ffee88;text-shadow:1px 1px 0 #000,0 0 5px #ff6600;margin-bottom:2px;}
+#kps-disp{font-size:12px;color:#ffcc66;text-shadow:1px 1px 0 #000;margin-bottom:10px;}
+#shawarma-wrap{position:relative;width:130px;height:190px;cursor:pointer;user-select:none;}
+#click-ripple{position:absolute;top:50%;left:50%;width:0;height:0;border-radius:50%;border:3px solid #ff9900;transform:translate(-50%,-50%);opacity:0;pointer-events:none;}
+#click-ripple.pop{animation:ripple .4s ease-out forwards;}
+@keyframes ripple{0%{width:0;height:0;opacity:.8;}100%{width:160px;height:160px;opacity:0;}}
+#click-info{margin-top:7px;font-size:12px;color:#ffdd88;text-shadow:1px 1px 0 #000;}
+#drip{position:absolute;bottom:-8px;left:50%;width:8px;height:8px;background:#cc4400;border-radius:50%;transform:translateX(-50%);animation:drip 2.5s ease-in infinite;}
+@keyframes drip{0%,60%{height:4px;opacity:0;}70%{opacity:1;height:10px;}100%{transform:translateX(-50%) translateY(18px);opacity:0;height:4px;}}
+.sec-title{font-size:10px;color:#ff9922;font-weight:bold;letter-spacing:1px;text-transform:uppercase;margin-top:4px;padding-bottom:3px;border-bottom:1px solid #3a1500;}
+.upgrade{background:rgba(40,15,0,.93);border:1px solid #4a2000;border-radius:7px;padding:8px 10px;cursor:pointer;transition:background .15s,transform .1s;}
+.upgrade:hover:not(.locked){background:rgba(60,25,0,.96);transform:scale(1.02);}
+.upgrade.locked{opacity:.35;cursor:not-allowed;}
+.upgrade.can-buy{border-color:#ffaa00;}
+.building{background:rgba(28,10,0,.93);border:1px solid #3a1800;border-radius:7px;padding:8px 10px;cursor:pointer;transition:background .15s,transform .1s;}
+.building:hover:not(.locked){background:rgba(46,20,0,.96);transform:scale(1.02);}
+.building.locked{opacity:.3;cursor:not-allowed;}
+.building.can-buy{border-color:#ffaa00;}
+.upg-name{font-size:12px;font-weight:bold;color:#ffcc44;}
+.upg-desc{font-size:10px;color:#aa7733;margin-top:1px;}
+.upg-cost{font-size:11px;color:#ff9922;margin-top:2px;}
+.bld-row{display:flex;justify-content:space-between;align-items:center;}
+.bld-name{font-size:12px;font-weight:bold;color:#ffdd88;}
+.bld-owned{font-size:15px;font-weight:bold;color:#ffaa33;}
+.bld-desc{font-size:10px;color:#886633;margin-top:1px;}
+.bld-cost{font-size:11px;color:#ff9922;margin-top:2px;}
+#floats{position:absolute;pointer-events:none;inset:0;z-index:5;}
+.float{position:absolute;font-size:14px;font-weight:bold;color:#ffee44;pointer-events:none;animation:floatUp .9s ease-out forwards;text-shadow:1px 1px 0 #000;}
+@keyframes floatUp{0%{opacity:1;transform:translateY(0) scale(1);}50%{opacity:1;transform:translateY(-28px) scale(1.15);}100%{opacity:0;transform:translateY(-60px) scale(.8);}}
+#milestone{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:#cc5500;color:#fff;padding:5px 14px;border-radius:20px;font-size:12px;font-weight:bold;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;z-index:10;}
+#buy-toast{position:absolute;top:48%;left:50%;transform:translate(-50%,-50%) scale(0);background:#cc5500;color:#fff;padding:9px 20px;border-radius:28px;font-size:13px;font-weight:bold;pointer-events:none;z-index:50;white-space:nowrap;border:2px solid #ffdd88;}
+#buy-toast.show{animation:toastPop .75s cubic-bezier(.34,1.56,.64,1) forwards;}
+@keyframes toastPop{0%{transform:translate(-50%,-50%) scale(0);opacity:0;}40%{transform:translate(-50%,-75%) scale(1.1);opacity:1;}70%{transform:translate(-50%,-75%) scale(.97);opacity:1;}100%{transform:translate(-50%,-110%) scale(1);opacity:0;}}
+#confetti-layer{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:40;}
+.cp{position:absolute;width:7px;height:7px;border-radius:2px;animation:cpFall linear forwards;}
+@keyframes cpFall{0%{transform:translateY(-10px) rotate(0deg);opacity:1;}100%{transform:translateY(700px) rotate(900deg);opacity:0;}}
+.burst-ring{position:absolute;border-radius:50%;border:3px solid #ffcc00;pointer-events:none;animation:bRing .5s ease-out forwards;}
+@keyframes bRing{0%{width:0;height:0;opacity:1;transform:translate(-50%,-50%);}100%{width:110px;height:110px;opacity:0;transform:translate(-50%,-50%);}}
+.coin{position:absolute;font-size:18px;pointer-events:none;animation:coinUp .9s ease-out forwards;}
+@keyframes coinUp{0%{opacity:1;transform:translateY(0) scale(1) rotate(0deg);}100%{opacity:0;transform:translateY(-65px) scale(.4) rotate(200deg);}}
+#right-flash{position:absolute;inset:0;background:#ffcc00;opacity:0;pointer-events:none;z-index:30;}
+#right-flash.flash{animation:pFlash .45s ease-out forwards;}
+@keyframes pFlash{0%{opacity:.22;}100%{opacity:0;}}
+.bounce-anim{animation:itemBounce .38s cubic-bezier(.34,1.56,.64,1);}
+@keyframes itemBounce{0%{transform:scale(1);}50%{transform:scale(1.07);}100%{transform:scale(1);}}
+.light-bulb{animation:bulbFlicker 2s ease-in-out infinite;}
+@keyframes bulbFlicker{0%,100%{opacity:1;}45%{opacity:.65;}82%{opacity:.45;}84%{opacity:1;}}
+.steam-p{animation:steamA 2.2s ease-out infinite;}
+.steam-p:nth-child(2){animation-delay:.7s;}
+.steam-p:nth-child(3){animation-delay:1.4s;}
+@keyframes steamA{0%{opacity:0;}20%{opacity:.6;}100%{opacity:0;transform:translateY(-28px);}}
+.cust{animation:walkL 6s linear infinite;}
+.cust2{animation:walkR 8s linear infinite;}
+@keyframes walkL{0%{transform:translateX(-30px);}50%{transform:translateX(30px);}100%{transform:translateX(-30px);}}
+@keyframes walkR{0%{transform:translateX(20px);}50%{transform:translateX(-25px);}100%{transform:translateX(20px);}}
+.sign-glow{animation:sGlow 1.5s ease-in-out infinite alternate;}
+@keyframes sGlow{0%{fill:#ffdd44;}100%{fill:#ffff88;}}
+/* owner panel */
+#owner-panel{background:rgba(14,4,0,.97);border:1px solid #5a2500;border-radius:10px;padding:12px;}
+#owner-panel .panel-title{font-size:11px;color:#ff9922;font-weight:bold;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+#owner-panel input{width:100%;background:#1a0800;border:1px solid #4a2000;border-radius:6px;padding:5px 8px;color:#ffdd88;font-family:monospace;font-size:12px;outline:none;margin-bottom:5px;}
+#owner-panel input:focus{border-color:#ff9922;}
+.save-btn{width:100%;background:#cc5500;border:none;border-radius:6px;padding:6px;color:#fff;font-family:monospace;font-size:12px;cursor:pointer;font-weight:bold;margin-bottom:8px;}
+.save-btn:hover{background:#ff6600;}
+.stat-row{display:flex;justify-content:space-between;font-size:11px;color:#886633;margin-top:3px;}
+.stat-val{color:#ffaa33;font-weight:bold;}
+/* prestige */
+#prestige-btn{width:100%;background:#2a0066;border:2px solid #9944ff;border-radius:8px;padding:8px;color:#cc88ff;font-family:monospace;font-size:12px;cursor:pointer;font-weight:bold;margin-top:4px;transition:background .2s;}
+#prestige-btn:hover{background:#3a0088;}
+/* achievement popup */
+#ach-popup{position:absolute;top:12px;right:10px;background:#1a0600;border:2px solid #ffaa00;border-radius:10px;padding:8px 14px;font-family:monospace;font-size:12px;color:#ffcc44;opacity:0;transition:opacity .4s;pointer-events:none;z-index:20;max-width:180px;text-align:center;}
+#ach-popup.show{animation:achPop 3s ease forwards;}
+@keyframes achPop{0%{opacity:0;transform:translateY(-8px);}15%{opacity:1;transform:translateY(0);}80%{opacity:1;}100%{opacity:0;}}
+/* multiplier badge */
+#mult-badge{font-size:11px;color:#ff88ff;text-shadow:0 0 5px #cc00cc;text-align:center;margin-top:2px;}
+/* prestige stars */
+#prestige-stars{font-size:14px;color:#ffcc00;text-align:center;letter-spacing:3px;min-height:16px;}
+/* news ticker */
+#ticker-wrap{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.7);padding:4px 8px;overflow:hidden;z-index:3;}
+#ticker{white-space:nowrap;font-size:11px;color:#ffcc44;animation:tickScroll 22s linear infinite;}
+@keyframes tickScroll{0%{transform:translateX(100%);}100%{transform:translateX(-100%);}}
+/* golden shawarma flash */
+#golden-flash{position:absolute;inset:0;background:#ffdd00;opacity:0;pointer-events:none;z-index:6;border-radius:50%;transform:scale(0);}
+#golden-flash.burst{animation:goldenBurst .6s ease-out forwards;}
+@keyframes goldenBurst{0%{opacity:.5;transform:scale(0);}100%{opacity:0;transform:scale(3);}}
+</style>
+</head>
+<body>
+<h1>🌯 SHAWARMA CLICKER 🌯</h1>
+<div id="app">
+  <div id="left">
+    <svg id="bgsvg" viewBox="0 0 420 640" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+      <rect width="420" height="640" fill="#0d0510"/>
+      <circle cx="30" cy="20" r="1" fill="#fff" opacity=".6"/><circle cx="80" cy="35" r="1.2" fill="#fff" opacity=".5"/>
+      <circle cx="150" cy="15" r="1" fill="#fff" opacity=".7"/><circle cx="200" cy="40" r=".8" fill="#fff" opacity=".4"/>
+      <circle cx="270" cy="18" r="1.1" fill="#fff" opacity=".6"/><circle cx="340" cy="30" r="1" fill="#fff" opacity=".5"/>
+      <circle cx="390" cy="12" r=".9" fill="#fff" opacity=".7"/><circle cx="310" cy="50" r="1" fill="#fff" opacity=".4"/>
+      <circle cx="370" cy="38" r="18" fill="#fffde0"/><circle cx="380" cy="32" r="14" fill="#0d0510"/>
+      <rect x="0" y="540" width="420" height="100" fill="#1a1a1a"/><rect x="0" y="537" width="420" height="6" fill="#333"/>
+      <rect x="30" y="558" width="40" height="5" rx="2" fill="#444" opacity=".7"/><rect x="120" y="558" width="40" height="5" rx="2" fill="#444" opacity=".7"/>
+      <rect x="210" y="558" width="40" height="5" rx="2" fill="#444" opacity=".7"/><rect x="300" y="558" width="40" height="5" rx="2" fill="#444" opacity=".7"/>
+      <rect x="0" y="90" width="420" height="450" fill="#2a1200"/>
+      <g opacity=".2">
+        <rect x="0" y="100" width="420" height="8" fill="#3a1800"/><rect x="0" y="116" width="420" height="8" fill="#3a1800"/>
+        <rect x="0" y="132" width="420" height="8" fill="#3a1800"/><rect x="0" y="148" width="420" height="8" fill="#3a1800"/>
+        <rect x="0" y="164" width="420" height="8" fill="#3a1800"/><rect x="0" y="180" width="420" height="8" fill="#3a1800"/>
+        <rect x="0" y="196" width="420" height="8" fill="#3a1800"/><rect x="0" y="212" width="420" height="8" fill="#3a1800"/>
+        <rect x="0" y="228" width="420" height="8" fill="#3a1800"/><rect x="0" y="244" width="420" height="8" fill="#3a1800"/>
+        <rect x="0" y="260" width="420" height="8" fill="#3a1800"/><rect x="0" y="276" width="420" height="8" fill="#3a1800"/>
+        <rect x="0" y="292" width="420" height="8" fill="#3a1800"/><rect x="0" y="308" width="420" height="8" fill="#3a1800"/>
+        <rect x="0" y="324" width="420" height="8" fill="#3a1800"/><rect x="0" y="340" width="420" height="8" fill="#3a1800"/>
+        <rect x="0" y="356" width="420" height="8" fill="#3a1800"/><rect x="0" y="372" width="420" height="8" fill="#3a1800"/>
+        <rect x="0" y="388" width="420" height="8" fill="#3a1800"/><rect x="0" y="404" width="420" height="8" fill="#3a1800"/>
+        <rect x="0" y="420" width="420" height="8" fill="#3a1800"/><rect x="0" y="436" width="420" height="8" fill="#3a1800"/>
+        <rect x="0" y="452" width="420" height="8" fill="#3a1800"/><rect x="0" y="468" width="420" height="8" fill="#3a1800"/>
+        <rect x="0" y="484" width="420" height="8" fill="#3a1800"/><rect x="0" y="500" width="420" height="8" fill="#3a1800"/>
+        <rect x="0" y="516" width="420" height="8" fill="#3a1800"/>
+      </g>
+      <rect x="0" y="90" width="420" height="55" fill="#cc2200"/><rect x="0" y="90" width="420" height="6" fill="#991100"/>
+      <g opacity=".35"><rect x="10" y="90" width="18" height="55" fill="#fff"/><rect x="50" y="90" width="18" height="55" fill="#fff"/><rect x="90" y="90" width="18" height="55" fill="#fff"/><rect x="130" y="90" width="18" height="55" fill="#fff"/><rect x="170" y="90" width="18" height="55" fill="#fff"/><rect x="210" y="90" width="18" height="55" fill="#fff"/><rect x="250" y="90" width="18" height="55" fill="#fff"/><rect x="290" y="90" width="18" height="55" fill="#fff"/><rect x="330" y="90" width="18" height="55" fill="#fff"/><rect x="370" y="90" width="18" height="55" fill="#fff"/></g>
+      <path d="M0 145 Q10 158 20 145 Q30 158 40 145 Q50 158 60 145 Q70 158 80 145 Q90 158 100 145 Q110 158 120 145 Q130 158 140 145 Q150 158 160 145 Q170 158 180 145 Q190 158 200 145 Q210 158 220 145 Q230 158 240 145 Q250 158 260 145 Q270 158 280 145 Q290 158 300 145 Q310 158 320 145 Q330 158 340 145 Q350 158 360 145 Q370 158 380 145 Q390 158 400 145 Q410 158 420 145" fill="#cc2200" stroke="#991100" stroke-width="1.5"/>
+      <rect x="70" y="60" width="280" height="48" rx="6" fill="#1a0600" stroke="#cc6600" stroke-width="2"/>
+      <rect x="74" y="64" width="272" height="40" rx="4" fill="#2a0d00"/>
+      <text id="sign-text" x="210" y="89" text-anchor="middle" font-family="monospace" font-size="15" font-weight="bold" class="sign-glow">AL-SHAM SHAWARMA</text>
+      <g class="light-bulb"><circle cx="80" cy="83" r="4" fill="#ffee44"/><circle cx="100" cy="69" r="3" fill="#ffaa00"/><circle cx="320" cy="69" r="3" fill="#ffaa00"/><circle cx="340" cy="83" r="4" fill="#ffee44"/><circle cx="210" cy="65" r="3.5" fill="#ffee44"/></g>
+      <path d="M0 88 Q52 94 105 88 Q157 94 210 88 Q262 94 315 88 Q367 94 420 88" fill="none" stroke="#555" stroke-width="1"/>
+      <g class="light-bulb"><circle cx="20" cy="90" r="4" fill="#ff4444"/><circle cx="62" cy="93" r="4" fill="#ffdd00"/><circle cx="104" cy="90" r="4" fill="#44aaff"/><circle cx="146" cy="93" r="4" fill="#ff88aa"/><circle cx="188" cy="90" r="4" fill="#88ff44"/><circle cx="230" cy="93" r="4" fill="#ff4444"/><circle cx="272" cy="90" r="4" fill="#ffdd00"/><circle cx="314" cy="93" r="4" fill="#44aaff"/><circle cx="356" cy="90" r="4" fill="#ff88aa"/><circle cx="398" cy="93" r="4" fill="#88ff44"/></g>
+      <rect x="148" y="390" width="124" height="150" rx="4" fill="#3a1500" stroke="#6a3000" stroke-width="2"/>
+      <rect x="153" y="395" width="52" height="65" rx="3" fill="#2a0d00" stroke="#4a2000" stroke-width="1"/>
+      <rect x="214" y="395" width="52" height="65" rx="3" fill="#2a0d00" stroke="#4a2000" stroke-width="1"/>
+      <rect x="153" y="468" width="52" height="65" rx="3" fill="#2a0d00" stroke="#4a2000" stroke-width="1"/>
+      <rect x="214" y="468" width="52" height="65" rx="3" fill="#2a0d00" stroke="#4a2000" stroke-width="1"/>
+      <rect x="197" y="455" width="26" height="5" rx="2" fill="#cc8800"/>
+      <rect x="22" y="175" width="105" height="120" rx="5" fill="#0a1a2a" stroke="#4a2800" stroke-width="2"/>
+      <rect x="24" y="177" width="101" height="116" rx="4" fill="#0d2035"/>
+      <line x1="74" y1="177" x2="74" y2="293" stroke="#4a2800" stroke-width="1.5"/>
+      <line x1="22" y1="237" x2="127" y2="237" stroke="#4a2800" stroke-width="1.5"/>
+      <rect x="24" y="177" width="101" height="116" rx="4" fill="#ffaa00" opacity=".07"/>
+      <rect x="293" y="175" width="105" height="120" rx="5" fill="#0a1a2a" stroke="#4a2800" stroke-width="2"/>
+      <rect x="295" y="177" width="101" height="116" rx="4" fill="#0d2035"/>
+      <line x1="345" y1="177" x2="345" y2="293" stroke="#4a2800" stroke-width="1.5"/>
+      <line x1="293" y1="237" x2="398" y2="237" stroke="#4a2800" stroke-width="1.5"/>
+      <rect x="295" y="177" width="101" height="116" rx="4" fill="#ffaa00" opacity=".07"/>
+      <rect x="22" y="305" width="105" height="80" rx="4" fill="#111" stroke="#4a2000" stroke-width="1.5"/>
+      <text x="74" y="322" text-anchor="middle" font-family="monospace" font-size="7" fill="#ff9900" font-weight="bold">MENU</text>
+      <line x1="30" y1="327" x2="118" y2="327" stroke="#4a2000" stroke-width=".7"/>
+      <text x="30" y="339" font-family="monospace" font-size="6.5" fill="#ffcc66">Chicken Wrap</text><text x="118" y="339" text-anchor="end" font-family="monospace" font-size="6.5" fill="#ffaa33">$8</text>
+      <text x="30" y="350" font-family="monospace" font-size="6.5" fill="#ffcc66">Beef Shawarma</text><text x="118" y="350" text-anchor="end" font-family="monospace" font-size="6.5" fill="#ffaa33">$9</text>
+      <text x="30" y="361" font-family="monospace" font-size="6.5" fill="#ffcc66">Mix Plate</text><text x="118" y="361" text-anchor="end" font-family="monospace" font-size="6.5" fill="#ffaa33">$11</text>
+      <text x="30" y="372" font-family="monospace" font-size="6.5" fill="#ffcc66">Falafel Wrap</text><text x="118" y="372" text-anchor="end" font-family="monospace" font-size="6.5" fill="#ffaa33">$7</text>
+      <rect x="8" y="430" width="8" height="110" rx="2" fill="#444"/>
+      <path d="M12 430 Q12 412 28 412" fill="none" stroke="#444" stroke-width="6" stroke-linecap="round"/>
+      <rect x="22" y="406" width="16" height="8" rx="3" fill="#ffee88"/><ellipse cx="30" cy="414" rx="14" ry="5" fill="#ffee88" opacity=".25"/>
+      <rect x="404" y="430" width="8" height="110" rx="2" fill="#444"/>
+      <path d="M408 430 Q408 412 392 412" fill="none" stroke="#444" stroke-width="6" stroke-linecap="round"/>
+      <rect x="382" y="406" width="16" height="8" rx="3" fill="#ffee88"/><ellipse cx="390" cy="414" rx="14" ry="5" fill="#ffee88" opacity=".25"/>
+      <rect x="0" y="520" width="420" height="20" fill="#5a2a00"/><rect x="0" y="520" width="420" height="4" fill="#8a4400"/>
+      <g transform="translate(310,320)">
+        <rect x="-6" y="-90" width="12" height="180" rx="3" fill="#888"/>
+        <circle cx="0" cy="-90" r="7" fill="#666"/><circle cx="0" cy="90" r="7" fill="#666"/>
+        <ellipse cx="0" cy="-60" rx="28" ry="10" fill="#cc6622" opacity=".9"/>
+        <ellipse cx="0" cy="-45" rx="32" ry="10" fill="#8B4513" opacity=".9"/>
+        <ellipse cx="0" cy="-30" rx="34" ry="10" fill="#cd853f" opacity=".9"/>
+        <ellipse cx="0" cy="-15" rx="35" ry="10" fill="#cc6622" opacity=".9"/>
+        <ellipse cx="0" cy="0" rx="34" ry="10" fill="#8B4513" opacity=".9"/>
+        <ellipse cx="0" cy="15" rx="32" ry="10" fill="#cd853f" opacity=".9"/>
+        <ellipse cx="0" cy="30" rx="30" ry="10" fill="#cc6622" opacity=".9"/>
+        <ellipse cx="0" cy="45" rx="26" ry="10" fill="#8B4513" opacity=".9"/>
+        <ellipse cx="0" cy="60" rx="22" ry="10" fill="#cd853f" opacity=".9"/>
+        <ellipse cx="18" cy="0" rx="10" ry="60" fill="#ff4400" opacity=".1"/>
+      </g>
+      <g transform="translate(310,220)">
+        <path class="steam-p" d="M-8 0 Q-12 -10 -8 -20 Q-4 -30 -8 -40" fill="none" stroke="#ffddaa" stroke-width="2.5" stroke-linecap="round"/>
+        <path class="steam-p" d="M0 0 Q4 -10 0 -20 Q-4 -30 0 -40" fill="none" stroke="#ffddaa" stroke-width="2" stroke-linecap="round"/>
+        <path class="steam-p" d="M8 0 Q12 -10 8 -20 Q4 -30 8 -40" fill="none" stroke="#ffddaa" stroke-width="2.5" stroke-linecap="round"/>
+      </g>
+      <rect x="336" y="275" width="3" height="55" rx="1" fill="#ccc" transform="rotate(10,336,275)"/>
+      <rect x="336" y="270" width="8" height="8" rx="1" fill="#884400" transform="rotate(10,336,275)"/>
+      <rect x="22" y="490" width="30" height="28" rx="3" fill="#8B4513"/><rect x="19" y="487" width="36" height="6" rx="2" fill="#6B3410"/>
+      <ellipse cx="37" cy="480" rx="18" ry="22" fill="#226622"/><ellipse cx="28" cy="475" rx="10" ry="14" fill="#2a8b2a"/><ellipse cx="46" cy="477" rx="10" ry="14" fill="#1a6b1a"/>
+      <rect x="368" y="490" width="30" height="28" rx="3" fill="#8B4513"/><rect x="365" y="487" width="36" height="6" rx="2" fill="#6B3410"/>
+      <ellipse cx="383" cy="480" rx="18" ry="22" fill="#226622"/><ellipse cx="374" cy="475" rx="10" ry="14" fill="#2a8b2a"/><ellipse cx="392" cy="477" rx="10" ry="14" fill="#1a6b1a"/>
+      <g class="cust" transform="translate(80,500)"><circle cx="0" cy="-42" r="10" fill="#f5c8a0"/><rect x="-8" y="-32" width="16" height="20" rx="3" fill="#cc3333"/><rect x="-9" y="-12" width="8" height="18" rx="2" fill="#2255aa"/><rect x="1" y="-12" width="8" height="18" rx="2" fill="#2255aa"/><rect x="-7" y="-48" width="14" height="7" rx="7" fill="#3a3a3a"/></g>
+      <g class="cust2" transform="translate(340,500)"><circle cx="0" cy="-42" r="10" fill="#c89060"/><rect x="-8" y="-32" width="16" height="20" rx="3" fill="#336633"/><rect x="-9" y="-12" width="8" height="18" rx="2" fill="#443311"/><rect x="1" y="-12" width="8" height="18" rx="2" fill="#443311"/><rect x="-8" y="-50" width="16" height="9" rx="4" fill="#8B4513"/></g>
+      <g transform="translate(258,518)"><ellipse cx="0" cy="0" rx="12" ry="7" fill="#888"/><circle cx="12" cy="-5" r="7" fill="#888"/><polygon points="9,-12 12,-16 15,-12" fill="#888"/><circle cx="14" cy="-5" r="1.5" fill="#333"/><path d="M-12 0 Q-20 4 -18 8" fill="none" stroke="#888" stroke-width="2.5" stroke-linecap="round"/></g>
+      <ellipse cx="210" cy="535" rx="150" ry="12" fill="#ff8800" opacity=".08"/>
+    </svg>
+
+    <div id="left-content">
+      <div id="top-bar">
+        <div id="prestige-stars"></div>
+        <div id="owner-name-disp">Al-Sham Shawarma</div>
+        <div id="shop-name-disp">Est. today</div>
+      </div>
+      <div id="kebab-count">0 shawarmas</div>
+      <div id="mult-badge"></div>
+      <div id="kps-disp">0 per second</div>
+      <div id="shawarma-wrap" onclick="doClick(event)">
+        <canvas id="sc" width="130" height="190"></canvas>
+        <div id="click-ripple"></div>
+        <div id="drip"></div>
+        <div id="golden-flash"></div>
+      </div>
+      <div id="click-info">+1 per click</div>
+    </div>
+    <div id="floats"></div>
+    <div id="confetti-layer"></div>
+    <div id="milestone"></div>
+    <div id="buy-toast"></div>
+    <div id="ach-popup"></div>
+    <div id="ticker-wrap"><div id="ticker">🌯 Welcome to the Shawarma Clicker! Click the shawarma to get started! Buy buildings for passive income! Chain kills for combos!</div></div>
+  </div>
+
+  <!-- MIDDLE: UPGRADES + BUILDINGS -->
+  <div id="middle">
+    <div class="sec-title">⚡ Upgrades</div>
+    <div id="upgrades-list"></div>
+    <div class="sec-title" style="margin-top:6px;">🏗️ Buildings</div>
+    <div id="buildings-list"></div>
+  </div>
+
+  <!-- RIGHT: OWNER PANEL + ACHIEVEMENTS + PRESTIGE -->
+  <div id="right" style="position:relative;">
+    <div id="right-flash"></div>
+
+    <div id="owner-panel">
+      <div class="panel-title">👤 Owner Panel</div>
+      <input id="owner-input" type="text" placeholder="Your name..." maxlength="22"/>
+      <input id="shop-input" type="text" placeholder="Shop name..." maxlength="24"/>
+      <button class="save-btn" onclick="saveName()">💾 Save</button>
+      <div class="stat-row"><span>Total made</span><span class="stat-val" id="stat-total">0</span></div>
+      <div class="stat-row"><span>Best click</span><span class="stat-val" id="stat-best">0</span></div>
+      <div class="stat-row"><span>Per second</span><span class="stat-val" id="stat-kps">0</span></div>
+      <div class="stat-row"><span>Buildings</span><span class="stat-val" id="stat-bld">0</span></div>
+      <div class="stat-row"><span>Upgrades</span><span class="stat-val" id="stat-upg">0/7</span></div>
+      <div class="stat-row"><span>Prestiges</span><span class="stat-val" id="stat-pres">0</span></div>
+      <div class="stat-row"><span>Highest combo</span><span class="stat-val" id="stat-combo">0</span></div>
+    </div>
+
+    <div class="sec-title" style="margin-top:8px;">🏆 Achievements</div>
+    <div id="achievements-list"></div>
+
+    <button id="prestige-btn" onclick="tryPrestige()">⭐ PRESTIGE ⭐<br><span style="font-size:10px;color:#aa88ff;">Reset for 2× bonus</span></button>
+    <div style="font-size:10px;color:#666;text-align:center;margin-top:4px;">Need 1M shawarmas to prestige</div>
+  </div>
+</div>
+
+<script>
+const sc=document.getElementById('sc');
+const ctx=sc.getContext('2d');
+let rot=0,clickBounce=0,isGolden=false;
+
+function drawShawarma(){
+  ctx.clearRect(0,0,130,190);ctx.save();ctx.translate(65,95);
+  if(clickBounce>0){ctx.scale(1-clickBounce*.06,1+clickBounce*.06);clickBounce=Math.max(0,clickBounce-.12);}
+  rot+=.012;
+  ctx.save();ctx.rotate(rot*.3);
+  ctx.fillStyle='#555';ctx.beginPath();ctx.ellipse(0,-82,5,5,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#888';ctx.fillRect(-3,-80,6,160);
+  ctx.fillStyle='#555';ctx.beginPath();ctx.ellipse(0,80,5,5,0,0,Math.PI*2);ctx.fill();
+  ctx.restore();
+  const gc=isGolden?'#ffd700':'';
+  const layers=[
+    {w:46,h:14,y:-72,c:gc||'#8B4513',c2:gc||'#6B3410'},{w:52,h:13,y:-59,c:gc||'#cc6622',c2:gc||'#aa4411'},
+    {w:56,h:14,y:-46,c:gc||'#cd853f',c2:gc||'#a0642a'},{w:58,h:13,y:-33,c:gc||'#8B4513',c2:gc||'#6B3410'},
+    {w:60,h:14,y:-20,c:gc||'#cc6622',c2:gc||'#aa4411'},{w:58,h:13,y:-7,c:gc||'#cd853f',c2:gc||'#a0642a'},
+    {w:56,h:14,y:6,c:gc||'#8B4513',c2:gc||'#6B3410'},{w:54,h:13,y:19,c:gc||'#cc6622',c2:gc||'#aa4411'},
+    {w:50,h:14,y:32,c:gc||'#cd853f',c2:gc||'#a0642a'},{w:46,h:13,y:45,c:gc||'#8B4513',c2:gc||'#6B3410'},
+    {w:40,h:14,y:57,c:gc||'#cc6622',c2:gc||'#aa4411'},{w:32,h:12,y:69,c:gc||'#cd853f',c2:gc||'#a0642a'},
+  ];
+  layers.forEach((l,i)=>{
+    const wb=Math.sin(rot*2+i*.5)*1.5;
+    ctx.save();ctx.translate(wb,0);
+    ctx.fillStyle=l.c2;ctx.beginPath();ctx.ellipse(0,l.y+l.h/2,l.w/2+1,l.h/2+1,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=l.c;ctx.beginPath();ctx.ellipse(0,l.y,l.w/2,l.h/2,0,0,Math.PI*2);ctx.fill();
+    if(i%3===0){ctx.fillStyle='rgba(255,200,100,.18)';ctx.beginPath();ctx.ellipse(-l.w/2*.3,l.y,l.w/2*.35,l.h/2*.5,0,0,Math.PI*2);ctx.fill();}
+    ctx.restore();
+  });
+  ctx.fillStyle='#e8c87a';ctx.beginPath();ctx.ellipse(0,75,20,10,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#f5dfa0';ctx.beginPath();ctx.ellipse(0,75,17,8,0,0,Math.PI*2);ctx.fill();
+  ctx.restore();
+  requestAnimationFrame(drawShawarma);
+}
+drawShawarma();
+
+let kebabs=0,totalKebabs=0,clickPower=1,kps=0,prestigeMult=1,prestigeCount=0;
+let combo=0,comboTimer=0,bestCombo=0,bestClick=0,goldenTimer=0,goldenActive=false;
+
+const CONFETTI_COLORS=['#ff4444','#ffdd00','#44aaff','#ff88aa','#88ff44','#ffaa00','#cc44ff','#44ffcc'];
+
+function launchConfetti(n=24){
+  const cl=document.getElementById('confetti-layer');
+  for(let i=0;i<n;i++){
+    const el=document.createElement('div');el.className='cp';
+    el.style.left=Math.random()*100+'%';el.style.top='-10px';
+    el.style.background=CONFETTI_COLORS[Math.floor(Math.random()*CONFETTI_COLORS.length)];
+    el.style.width=(5+Math.random()*7)+'px';el.style.height=(5+Math.random()*7)+'px';
+    el.style.borderRadius=Math.random()>.5?'50%':'2px';
+    el.style.animationDuration=(.7+Math.random()*1.3)+'s';
+    el.style.animationDelay=(Math.random()*.35)+'s';
+    cl.appendChild(el);setTimeout(()=>el.remove(),2200);
+  }
+}
+
+function burstAt(el,label){
+  const rect=el.getBoundingClientRect();
+  const appRect=document.getElementById('left').getBoundingClientRect();
+  const cx=rect.left+rect.width/2-appRect.left;
+  const cy=rect.top+rect.height/2-appRect.top;
+  const left=document.getElementById('left');
+  const ring=document.createElement('div');ring.className='burst-ring';
+  ring.style.left=cx+'px';ring.style.top=cy+'px';
+  left.appendChild(ring);setTimeout(()=>ring.remove(),600);
+  ['🪙','💰','⭐','✨','🌯'].forEach((c,i)=>{
+    const coin=document.createElement('div');coin.className='coin';coin.textContent=c;
+    coin.style.left=(cx-15+Math.random()*30)+'px';coin.style.top=cy+'px';
+    coin.style.animationDelay=(i*.06)+'s';
+    left.appendChild(coin);setTimeout(()=>coin.remove(),1100);
+  });
+  const toast=document.getElementById('buy-toast');
+  toast.textContent='✅ '+label+' purchased!';
+  toast.className='show';setTimeout(()=>toast.className='',800);
+  const flash=document.getElementById('right-flash');
+  flash.className='';void flash.offsetWidth;flash.className='flash';
+  launchConfetti(20);
+}
+
+function showAchievement(name,icon){
+  const el=document.getElementById('ach-popup');
+  el.innerHTML=icon+'<br><b>'+name+'</b><br><span style="font-size:10px;color:#cc9944">Achievement unlocked!</span>';
+  el.className='show';setTimeout(()=>el.className='',3100);
+}
+
+function fmt(n){
+  n=Math.floor(n);
+  if(n>=1e12)return(n/1e12).toFixed(1)+'T';
+  if(n>=1e9)return(n/1e9).toFixed(1)+'B';
+  if(n>=1e6)return(n/1e6).toFixed(1)+'M';
+  if(n>=1e3)return(n/1e3).toFixed(1)+'K';
+  return n+'';
+}
+
+function spawnFloat(x,y,text){
+  const f=document.createElement('div');f.className='float';f.textContent=text;
+  f.style.left=(x-20)+'px';f.style.top=(y-30)+'px';
+  document.getElementById('floats').appendChild(f);
+  setTimeout(()=>f.remove(),950);
+}
+
+const MILESTONES=[100,500,2000,10000,50000,200000,1000000,5000000,10000000];
+let nextM=0;
+function checkM(){
+  if(nextM<MILESTONES.length&&totalKebabs>=MILESTONES[nextM]){
+    const m=document.getElementById('milestone');
+    m.textContent='🌟 '+fmt(MILESTONES[nextM])+' shawarmas! 🌟';
+    m.style.opacity='1';setTimeout(()=>m.style.opacity='0',2500);
+    nextM++;
+  }
+}
+
+const ACHIEVEMENTS=[
+  {id:'first',name:'First Bite',icon:'🌯',req:()=>totalKebabs>=1,done:false},
+  {id:'hundred',name:'Century Roll',icon:'💯',req:()=>totalKebabs>=100,done:false},
+  {id:'thousand',name:'Shawarma King',icon:'👑',req:()=>totalKebabs>=1000,done:false},
+  {id:'million',name:'Meat Millionaire',icon:'💰',req:()=>totalKebabs>=1000000,done:false},
+  {id:'combo5',name:'Combo Master',icon:'🔥',req:()=>bestCombo>=5,done:false},
+  {id:'prestige1',name:'Prestigious',icon:'⭐',req:()=>prestigeCount>=1,done:false},
+  {id:'buildings10',name:'Mini Empire',icon:'🏗️',req:()=>bldDefs.reduce((s,b)=>s+b.owned,0)>=10,done:false},
+  {id:'allupgrades',name:'Fully Loaded',icon:'⚡',req:()=>upgrades.every(u=>u.bought),done:false},
+  {id:'golden',name:'Golden Touch',icon:'✨',req:()=>goldenClicks>=1,done:false},
+];
+let goldenClicks=0;
+
+function checkAchievements(){
+  ACHIEVEMENTS.forEach(a=>{
+    if(!a.done&&a.req()){a.done=true;showAchievement(a.name,a.icon);renderAchievements();}
+  });
+}
+
+function renderAchievements(){
+  const el=document.getElementById('achievements-list');el.innerHTML='';
+  ACHIEVEMENTS.forEach(a=>{
+    const div=document.createElement('div');
+    div.style.cssText='display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid #2a0d00;font-size:11px;';
+    div.style.opacity=a.done?'1':'0.3';
+    div.innerHTML='<span style="font-size:14px;">'+a.icon+'</span><span style="color:'+(a.done?'#ffcc44':'#664422')+'">'+a.name+'</span>';
+    el.appendChild(div);
+  });
+}
+
+// Golden shawarma spawning
+setInterval(()=>{
+  if(!goldenActive&&Math.random()<0.008){
+    goldenActive=true;isGolden=true;
+    goldenTimer=15;
+    const flash=document.getElementById('golden-flash');
+    flash.className='burst';setTimeout(()=>flash.className='',700);
+    const m=document.getElementById('milestone');
+    m.textContent='✨ GOLDEN SHAWARMA! Click for 10× bonus! ✨';
+    m.style.opacity='1';m.style.background='#aa8800';
+    setTimeout(()=>{m.style.opacity='0';m.style.background='#cc5500';},3000);
+    setTimeout(()=>{goldenActive=false;isGolden=false;},15000);
+  }
+},1000);
+
+function doClick(e){
+  let power=clickPower*prestigeMult;
+  if(goldenActive){power*=10;goldenClicks++;}
+  if(combo>2)power=Math.floor(power*(1+combo*0.1));
+  kebabs+=power;totalKebabs+=power;
+  if(power>bestClick)bestClick=power;
+  clickBounce=1;combo++;comboTimer=90;
+  if(combo>bestCombo)bestCombo=combo;
+  const r=document.getElementById('click-ripple');
+  r.classList.remove('pop');void r.offsetWidth;r.classList.add('pop');
+  checkM();checkAchievements();
+  const rect=document.getElementById('left').getBoundingClientRect();
+  const txt=combo>3?'+'+fmt(power)+' x'+combo+'!':'+'+fmt(power);
+  spawnFloat(e.clientX-rect.left,e.clientY-rect.top,txt);
+  renderAll();
+}
+
+function saveName(){
+  const n=document.getElementById('owner-input').value.trim()||'Al-Sham Shawarma';
+  const s=document.getElementById('shop-input').value.trim()||'Est. today';
+  document.getElementById('owner-name-disp').textContent=n+"'s Shop";
+  document.getElementById('shop-name-disp').textContent=s;
+  document.getElementById('sign-text').textContent=(n+"'s Shawarma").toUpperCase().substring(0,20);
+}
+
+function tryPrestige(){
+  if(totalKebabs<1000000){
+    const m=document.getElementById('milestone');
+    m.textContent='Need 1,000,000 shawarmas to prestige!';
+    m.style.opacity='1';setTimeout(()=>m.style.opacity='0',2000);
+    return;
+  }
+  prestigeCount++;prestigeMult*=2;
+  kebabs=0;totalKebabs=0;clickPower=1;kps=0;nextM=0;
+  upgrades.forEach(u=>u.bought=false);
+  bldDefs.forEach(b=>{b.owned=0;b.mult=1;});
+  recalcKps();
+  const stars='⭐'.repeat(prestigeCount);
+  document.getElementById('prestige-stars').textContent=stars;
+  const m=document.getElementById('milestone');
+  m.textContent='⭐ PRESTIGE '+prestigeCount+'! Bonus: '+prestigeMult+'×!';
+  m.style.opacity='1';setTimeout(()=>m.style.opacity='0',3000);
+  launchConfetti(50);checkAchievements();renderAll();
+}
+
+const upgrades=[
+  {id:'u1',name:'Better skewer',desc:'Double click power',cost:50,bought:false,effect:()=>{clickPower*=2;}},
+  {id:'u2',name:'Secret garlic sauce',desc:'Chefs make 2× more',cost:200,bought:false,effect:()=>{applyMult('chef',2);}},
+  {id:'u3',name:'Spicy marinade',desc:'Triple click power',cost:500,bought:false,effect:()=>{clickPower*=3;}},
+  {id:'u4',name:'Food truck fleet',desc:'Stalls 2× output',cost:1500,bought:false,effect:()=>{applyMult('stall',2);}},
+  {id:'u5',name:'Turbo rotisserie',desc:'Click power ×5',cost:5000,bought:false,effect:()=>{clickPower*=5;}},
+  {id:'u6',name:'Industrial seasoning',desc:'Factories 3× output',cost:20000,bought:false,effect:()=>{applyMult('factory',3);}},
+  {id:'u7',name:'Golden spit',desc:'All buildings 2×',cost:80000,bought:false,effect:()=>{bldDefs.forEach(b=>b.mult*=2);recalcKps();}},
+];
+
+const bldDefs=[
+  {id:'chef',name:'Street chef',emoji:'👨‍🍳',desc:'Hand-rolls shawarmas',baseCost:15,baseKps:.2,owned:0,mult:1},
+  {id:'stall',name:'Shawarma stall',emoji:'🏪',desc:'Busy roadside stall',baseCost:100,baseKps:1.5,owned:0,mult:1},
+  {id:'oven',name:'Charcoal oven',emoji:'🔥',desc:'Slow-roasts all day',baseCost:500,baseKps:8,owned:0,mult:1},
+  {id:'factory',name:'Shawarma factory',emoji:'🏭',desc:'Industrial production',baseCost:3000,baseKps:40,owned:0,mult:1},
+  {id:'empire',name:'Shawarma empire',emoji:'👑',desc:'Global domination',baseCost:20000,baseKps:200,owned:0,mult:1},
+  {id:'planet',name:'Shawarma planet',emoji:'🌍',desc:'Interplanetary spits',baseCost:200000,baseKps:1500,owned:0,mult:1},
+];
+
+function applyMult(id,m){const b=bldDefs.find(b=>b.id===id);if(b){b.mult*=m;recalcKps();}}
+function getBldCost(b){return Math.floor(b.baseCost*Math.pow(1.15,b.owned));}
+function recalcKps(){kps=bldDefs.reduce((s,b)=>s+b.baseKps*b.owned*b.mult*prestigeMult,0);}
+
+function renderAll(){
+  document.getElementById('kebab-count').textContent=fmt(kebabs)+' shawarma'+(Math.floor(kebabs)!==1?'s':'');
+  document.getElementById('kps-disp').textContent=kps.toFixed(1)+' per second';
+  document.getElementById('click-info').textContent='+'+fmt(Math.floor(clickPower*prestigeMult*(goldenActive?10:1)))+' per click'+(goldenActive?' ✨':'');
+  if(prestigeMult>1)document.getElementById('mult-badge').textContent='✨ '+prestigeMult+'× prestige bonus';
+  else document.getElementById('mult-badge').textContent='';
+  document.getElementById('stat-total').textContent=fmt(totalKebabs);
+  document.getElementById('stat-best').textContent=fmt(bestClick);
+  document.getElementById('stat-kps').textContent=kps.toFixed(1);
+  document.getElementById('stat-bld').textContent=bldDefs.reduce((s,b)=>s+b.owned,0);
+  document.getElementById('stat-upg').textContent=upgrades.filter(u=>u.bought).length+'/'+upgrades.length;
+  document.getElementById('stat-pres').textContent=prestigeCount;
+  document.getElementById('stat-combo').textContent=bestCombo;
+  renderUpgrades();renderBuildings();
+}
+
+function renderUpgrades(){
+  const el=document.getElementById('upgrades-list');el.innerHTML='';
+  let any=false;
+  upgrades.forEach(u=>{
+    if(u.bought)return;any=true;
+    const canBuy=kebabs>=u.cost;
+    const div=document.createElement('div');
+    div.className='upgrade'+(canBuy?' can-buy':' locked');
+    div.innerHTML='<div class="upg-name">'+u.name+'</div><div class="upg-desc">'+u.desc+'</div><div class="upg-cost">'+fmt(u.cost)+' shawarmas</div>';
+    if(canBuy)div.onclick=()=>{if(kebabs>=u.cost&&!u.bought){kebabs-=u.cost;u.bought=true;u.effect();burstAt(div,u.name);div.classList.add('bounce-anim');setTimeout(()=>div.classList.remove('bounce-anim'),400);checkAchievements();renderAll();}};
+    el.appendChild(div);
+  });
+  if(!any)el.innerHTML='<div style="font-size:11px;color:#664422;padding:6px;">All upgrades bought!</div>';
+}
+
+function renderBuildings(){
+  const el=document.getElementById('buildings-list');el.innerHTML='';
+  bldDefs.forEach(b=>{
+    const cost=getBldCost(b);const canBuy=kebabs>=cost;
+    const div=document.createElement('div');
+    div.className='building'+(canBuy?' can-buy':' locked');
+    div.innerHTML='<div class="bld-row"><span class="bld-name">'+b.emoji+' '+b.name+'</span><span class="bld-owned">'+b.owned+'</span></div><div class="bld-desc">'+b.desc+'</div><div class="bld-cost">'+fmt(cost)+' shawarmas</div>';
+    if(canBuy)div.onclick=()=>{const c=getBldCost(b);if(kebabs>=c){kebabs-=c;b.owned++;recalcKps();burstAt(div,b.name);div.classList.add('bounce-anim');setTimeout(()=>div.classList.remove('bounce-anim'),400);checkAchievements();renderAll();}};
+    el.appendChild(div);
+  });
+}
+
+setInterval(()=>{
+  if(kps>0){kebabs+=kps/20;totalKebabs+=kps/20;checkM();checkAchievements();}
+  if(comboTimer>0){comboTimer--;if(comboTimer===0)combo=0;}
+  renderAll();
+},50);
+
+renderAchievements();renderAll();
+</script>
+</body>
+</html>
